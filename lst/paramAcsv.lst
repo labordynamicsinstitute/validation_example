@@ -1,0 +1,16 @@
+               D
+  i            e         V             E
+  n            p         a             s
+  d            e         r             t           S         t
+  u   M        n         i             i           t         V       P
+  s   o        d         a             m           d         a       r
+O t   d        e         b             a           E         l       o
+b r   e        n         l     D       t           r         u       b
+s y   l        t         e     F       e           r         e       t
+ 
+1 1 MODEL1 empgrowth Intercept  1   504.27831    47.07337   10.71 <.0001
+2 1 MODEL1 empgrowth lagE       1    -0.02017     0.00272   -7.41 <.0001
+3 1 MODEL1 empgrowth lagw       1    -4.56316     2.64965   -1.72 0.0851
+4 2 MODEL1 empgrowth Intercept  1   305.47283   116.69556    2.62 0.0090
+5 2 MODEL1 empgrowth lagE       1    -0.01798     0.00655   -2.75 0.0062
+6 2 MODEL1 empgrowth lagw       1     5.82236     6.66205    0.87 0.3824

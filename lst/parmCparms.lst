@@ -1,0 +1,20 @@
+         D                   P                                             s
+         e                   a                     E             i         o
+         p                   r                     s             n e       r
+         e                   a                     t             d m       t
+         n                   m                     i         P   u p       o
+         d                   e                     m         r   s c   y   r
+  O      e                   t                     a         o   t a   e   d
+  b      n                   e                     t         b   r t   a   e
+  s      t                   r                     e         t   y 2   r   r
+ 
+   1 empgrowth Intercept                        188.86452 0.0206 . .    .  1
+   2 empgrowth industr*empcat2*year 1 1 1980   -188.63143 0.0346 1 1 1980  2
+   3 empgrowth industr*empcat2*year 1 1 1981   -188.85186 0.0320 1 1 1981  3
+   4 empgrowth industr*empcat2*year 1 2 1980   -188.64757 0.0384 1 2 1980  4
+   5 empgrowth industr*empcat2*year 1 2 1981   -188.84616 0.0447 1 2 1981  5
+   6 empgrowth industr*empcat2*year 1 3 1980   -187.69891 0.0330 1 3 1980  6
+   7 empgrowth industr*empcat2*year 1 4 1980   -186.04761 0.1061 1 4 1980  7
+   8 empgrowth industr*empcat2*year 1 4 1981   -184.26911 0.1094 1 4 1981  8
+   9 empgrowth industr*empcat2*year 1 6 1980   -188.77234 0.1011 1 6 1980  9
+  10 empgrowth industr*empcat2*year 1 7 1981   -188.76544 0.1011 1 7 1981 10

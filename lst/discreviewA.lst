@@ -1,0 +1,19 @@
+                      n
+Obs    industry    Estabs    nObs    Model     Dependent    Variable     DF
+ 
+ 1         1        3006     6011    MODEL1    empgrowth    Intercept     1
+ 2         1        3006     6011    MODEL1    empgrowth    lagE          1
+ 3         1        3006     6011    MODEL1    empgrowth    lagw          1
+ 4         2         350      700    MODEL1    empgrowth    Intercept     1
+ 5         2         350      700    MODEL1    empgrowth    lagE          1
+ 6         2         350      700    MODEL1    empgrowth    lagw          1
+ 
+                                                           flag_
+Obs       Estimate         StdErr     tValue     Probt    problem
+ 
+ 1       504.27831       47.07337      10.71    <.0001       0
+ 2        -0.02017        0.00272      -7.41    <.0001       0
+ 3        -4.56316        2.64965      -1.72    0.0851       0
+ 4       305.47283      116.69556       2.62    0.0090       0
+ 5        -0.01798        0.00655      -2.75    0.0062       0
+ 6         5.82236        6.66205       0.87    0.3824       0

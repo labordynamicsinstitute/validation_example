@@ -1,0 +1,15 @@
+                                                       VName_    empgrowth_
+Obs     industry        empcat          year    NObs  empgrowth      N
+ 
+ 15            5             1          1980       3  empgrowth         3
+ 16            5             1          1981       4  empgrowth         4
+ 17            5             2          1980       3  empgrowth         3
+ 18            5             2          1981       6  empgrowth         6
+ 
+      empgrowth_   empgrowth_   VName_   wagegrowth_  wagegrowth_  wagegrowth_
+Obs         Mean          Var wagegrowth      N              Mean          Var
+ 
+ 15 4.2231758381 51.774648502 wagegrowth        3    0.6535617286 0.2265513224
+ 16 0.6196349929 1.3040082891 wagegrowth        4    1.5559219994 1.2914206346
+ 17 1.5038638959 6.0108663764 wagegrowth        3    4.8368784513 47.443898472
+ 18 8.4462319483 167.12739751 wagegrowth        6    2.5389145824  9.122449814

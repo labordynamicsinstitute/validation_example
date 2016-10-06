@@ -1,0 +1,12 @@
+ Obs    Dependent    industry    empcat2    year        Estimate    nObs
+ 
+   1    empgrowth        .          .          .       188.86452      .
+   2    empgrowth        1          1       1980      -188.63143      5
+   3    empgrowth        1          1       1981      -188.85186      6
+   4    empgrowth        1          2       1980      -188.64757      4
+   5    empgrowth        1          2       1981      -188.84616      3
+   6    empgrowth        1          3       1980      -187.69891      6
+   7    empgrowth        1          4       1980      -186.04761      1
+   8    empgrowth        1          4       1981      -184.26911      1
+   9    empgrowth        1          6       1980      -188.77234      1
+  10    empgrowth        1          7       1981      -188.76544      1

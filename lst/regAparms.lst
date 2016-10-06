@@ -1,0 +1,14 @@
+industry=1
+ 
+The REG Procedure
+Model: MODEL1
+Dependent Variable: empgrowth
+ 
+                        Parameter Estimates
+ 
+                     Parameter       Standard
+Variable     DF       Estimate          Error    t Value    Pr > |t|
+ 
+Intercept     1      504.27831       47.07337      10.71      <.0001
+lagE          1       -0.02017        0.00272      -7.41      <.0001
+lagw          1       -4.56316        2.64965      -1.72      0.0851

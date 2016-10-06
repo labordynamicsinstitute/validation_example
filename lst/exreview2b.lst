@@ -1,0 +1,11 @@
+The UNIVARIATE Procedure
+Variable:  nObs
+ 
+                            Moments
+ 
+N                       55930    Sum Weights              55930
+Mean               2.95063472    Sum Observations        165029
+Std Deviation      21.1976363    Variance            449.339783
+Skewness           36.9862517    Kurtosis            1747.93997
+Uncorrected SS       25618065    Corrected SS        25131124.7
+Coeff Variation    718.409368    Std Error Mean       0.0896324

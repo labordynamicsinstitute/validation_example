@@ -1,0 +1,581 @@
+\documentclass{article}
+\usepackage{xcolor}
+\definecolor{darkblue}{rgb}{0,0,0.6}
+
+\usepackage[
+   bookmarks=true,
+   hyperindex = true,
+   pdfpagemode = useoutlines,
+   pdfpagelabels = true,
+   plainpages = false,
+   colorlinks = true,
+   linkcolor=darkblue,
+   filecolor=darkblue,
+   citecolor=darkblue,
+   urlcolor=darkblue,
+]{hyperref}
+\usepackage{statrep}
+\usepackage{parskip,xspace}
+\usepackage{attachfile}
+\usepackage[margin=1in]{geometry}
+\newcommand*{\Statrep}{\mbox{\textsf{StatRep}}\xspace}
+\newcommand*{\Code}[1]{\texttt{\textbf{#1}}}
+\newcommand*{\cs}[1]{\texttt{\textbf{\textbackslash#1}}}
+\setcounter{secnumdepth}{1}
+
+\title{Example and Tutorial for SynLBD Validation}
+\author{Lars Vilhuber, Jorgen Harris, and Emin Dinlersoz}
+\date{For comment only - not final\\\today}
+\begin{document}
+\maketitle
+\section{Introduction}
+The Synthetic Longitudinal Business Database (SynLBD) was created to allow researchers to carry out research and test hypotheses on the LBD without compromising its security or confidentiality.  Because the SynLBD is similar in structure and statistical properties to the LBD, it can be used to generate results that approximate the LBD, and can be used to test code that can be securely run on the LBD by Census staff.  Researchers can answer questions using the SynLBD either by requesting \textit{validation} of their results on the LBD, or by simply requesting \textit{export} of their SynLBD results only. This memo gives examples of extracts that meet validation requirements, that fail to meet validation requirements but meet export requirements, and that fail to meet validation and export requirements.
+
+\paragraph{Validation} ultimately leads to the release of results based on confidential data. The release of such results must satisfy the confidentiality requirements that an analysis executed in a Federal Statistical Research Data Center (FSRDC) would also need to satisfy (see \href{http://www.census.gov/content/dam/Census/programs-surveys/sipp/methodology/RDCDisclosureRequestMemo.pdf}{RDC Clearance Request Memo} and \href{http://www.census.gov/content/dam/Census/programs-surveys/sipp/methodology/Researcher_Handbook_20091119.pdf}{RDC Researcher Handbook}). This limits what can be released, and needs to be taken into account by the researcher. In essence, validation should be limited to
+\begin{itemize}
+\item Simple descriptive statistics (e.g. 1-2 tables describing the sample), as would be directly printable in an article
+\item Tabular data is highly discouraged in general. This includes more complex or expansive summary statistics, and detailed moments of the data
+\item Model parameters for a limited number of coefficients and models. 
+\item Parameters for dichotomous (dummy) variables are treated as tabular data would be, and need special treatment. In general, parameters derived from a small number of observations are discouraged.
+\item If summaries of many (100s) models or summary statistics are of interest (evolution of a parameter across hundreds of specifications, the distribution of the variance or IQR across many cells), then the validation request concerns the summary of those models and statistics, not the models and summary statistics themselves
+\end{itemize}
+In general, a good heuristic is: if you would print it as part of your paper, it is likely OK; if it looks like ``raw data'', in particular if it will serve as input for some second-stage computation, it is not OK.
+
+\paragraph{Export} requirements concern only the results based on the synthetic data. Disclosure risk plays no role here, but the unauthorized distribution of the synthetic data itself is of issue. A similar heuristic as before applies: if it looks like ``data'', it is not exportable: Straight subsets of the data, detailed summary tables of large parts of the data are not exportable. However, a limited number of results based on, for example, small subsamples, would pose no problem. Again, model parameters generally pose no problem and are directly provided to the researcher. Large tables of summary statistics may involve some evaluation, but basic descriptive statistics of the type one would print in a published paper are not a problem.
+
+\section{Setup}
+
+The results in this exercise use a simple artificial dataset that loosely mimics the structure of the LBD.  In this dataset, 1,000,000 establishments are generated with an industry (drawn from an exponential distribution and rounded up – what exactly is drawn here? No variable mentioned. Number of establishments in each industry is exponentially distributed, I believe?), and employment and payroll for each of three years (again drawn from an exponential distribution).  As a result, there are lots of firms in industry 1 and many of them are lots of small firms, but few firms in industry 70, but with with large numbers of employees.
+
+
+
+\begin{quotation}
+This article uses the \Statrep \LaTeX\ package.
+The package is available
+for download at \texttt{http://support.sas.com/StatRepPackage}. To generate this document, 
+\begin{verbatim}
+pdflatex file.tex
+sas file_SR.sas
+pdflatex file.tex
+pdflatex file.tex
+\end{verbatim}
+or see Appendix~\ref{sec:statrep}.
+\end{quotation}
+
+
+\section{The Fake Dataset}
+We create a dataset that approximates, very roughly, the characteristics of the establishment and employment distribution of a real dataset such as the SynLBD and LBD. We use this so that the document is maximally portable, given distribution restrictions for both SynLBD and LBD.
+
+\begin{Datastep}[program]
+options nocenter;
+libname home ".";
+
+/* basic parameters */
+%let indcnt=40;
+%let maxestabcnt=10000;
+%let minestabcnt=100;
+%let seed1=123456;
+
+%let maxemp=42000;
+%let minemp=1;
+%let minyear=1979;
+%let maxyear=1981;
+%let seed2=1234567;
+
+%let printobs=10;
+\end{Datastep}
+
+\begin{Datastep}
+/* draw estab count distribution across industries*/
+/* use log normal */
+data industries;
+  do industry = 1 to &indcnt.;
+  estabs= exp(ranuni(&seed1.)*
+                (log(&maxestabcnt.)
+                -log(&minestabcnt.)) 
+                + log(&minestabcnt.));
+  output;
+  end;
+  run;
+
+
+/* now draw employment for each estab in each industry */
+
+data fakelbd;
+  set industries;
+  by industry;
+  drop i;
+  do lbdnum=100000*industry+1 to 100000*industry+estabs; 
+    do year=&minyear. to &maxyear.;
+       emp= exp(ranuni(&seed2.)
+         *(log(&maxemp.)-log(&minemp.)) 
+         + log(&minemp.));
+    payroll  = emp*30*ranuni(&seed2.);
+    output;
+  end; end;
+run;
+\end{Datastep}
+
+We can assess the distributions, first of establishments:
+
+\begin{Sascode}[store=univarA,program]
+ods graphics on;
+  proc univariate data=industries;
+  var estabs;
+  run;
+  ods graphics off;
+ \end{Sascode}
+\Listing[store=univarA,caption={Statistics on establishments},objects=BasicMeasures ]{figunivarA}
+
+Let's have a look at the distribution of employment:
+
+\begin{Sascode}[store=univarB,program]
+ods graphics on;
+proc univariate data=fakelbd;
+var emp;
+run;
+ods graphics off;
+\end{Sascode}
+\Listing[store=univarB,caption={Statistics on employment},objects=BasicMeasures]{figunivarB}
+
+Figure~\ref{figunivarA} shows that the number of establishments across industries varies, which will lead to difficulties if we want to obtain results for certain industries:
+
+%\begin{Sascode}[store=obsperind,program]
+%proc freq data=fakelbd;
+%table industry;
+%run;
+%\end{Sascode}
+%\Listing[store=obsperind,caption={Number of obs per industry}]{obsperind}
+
+\begin{Sascode}[store=obsperind,program]
+ods graphics on;
+proc univariate data=fakelbd;
+var industry;
+histogram industry;
+run;
+\end{Sascode}
+\Graphic[store=obsperind,objects={Histogram},caption={Number of obs per industry}]{obsperind}
+
+
+\section{Project 1:  Analysis that meets validation requirements}
+This example is a project where the analysis, and the validation request, meet the requirements. This project is interested in regressing average wages and number of employees 
+on employment growth in industries 1 and 2. First, the researcher prepares the data:
+
+\begin{Datastep}
+/*Prepare data*/
+/* program: 01_prepdata.sas */
+data analysis1;
+set fakelbd;
+by industry lbdnum year;
+wage = payroll/emp;
+if first.lbdnum then do; 
+	lagE = .;         
+	lagp = .;         
+	lagw = .;         
+end;
+else                 do; 
+	lagE = lag(emp); 
+	lagp=lag(payroll); 
+	lagw = lag(wage); 
+end;
+empgrowth = emp/lage;
+wagegrowth= wage/lagw;
+run;
+\end{Datastep}
+
+Then, the regression of interest to the researcher is run:
+
+\begin{Sascode}[store=regA]
+/*Regression of interest*/
+/* program: 02_regression1.sas */
+proc reg data=analysis1;
+by industry;
+where industry le 2;
+model empgrowth = lagE lagw;
+output out=obsds1 r=inc;
+ods output parameterestimates=param1;
+run;
+ods trace off;
+\end{Sascode}
+Note that the researcher is capturing the output (using SAS ODS) in the file "param1". This will be useful for post-processing and outputting results. The result of the regression is the following output (here for the first industry only):
+
+\Listing[store=regA,objects=Reg.ByGroup1.MODEL1.Fit.empgrowth.ParameterEstimates,caption={Project 1: Parameter estimates}]{regAparms}
+
+In order to prepare for validation and disclosure avoidance review of the \textit{confidential} analysis, the researcher must determine  the effective sample size of each parameter in terms of establishments and total observations. Note that is \textit{unknown} to her at this point - she only knows those sample sizes in the synthetic data, and most \textit{program} up the checks as a function of the \textit{unknown} confidential numbers. However, the synthetic data are an ideal test ground for the program. 
+Ideally, the results are provided as an ``augmented'' results table that allows the Census Bureau disclosure officer to assess the whole picture. The following code will generate that information:
+
+\begin{Datastep}
+/* Prepare disclosure avoidance analysis */
+/* program: 03_prep_daa.sas */
+
+/* create a count by industry */
+proc sql;
+create table discreview1 as
+select industry,count(distinct lbdnum) as nEstabs,count(*) as nObs
+from obsds1
+where inc ne .
+group by industry
+;
+quit;
+/* merge with parameter estimates */
+/* flag possible problematic cases */
+%let mincount=10;
+data discreview1;
+  merge discreview1(in=_a)
+               param1(in=_b);
+   by industry;
+   flag_problem=(nEstabs<&mincount.);
+   label flag_problem=" (nEstabs<&mincount.)";
+ run;
+\end{Datastep}
+Finally, we can tabulate (for the synthetic data) the (potentially) problematic cases. Note that we set a particular value as the threshold - the Census Bureau might change that value, upon consultation with the Disclosure Review Board, but the program will still generate the right output.
+\begin{Sascode}[store=daa1lst]
+proc freq data=discreview1;
+table flag_problem;
+run;
+\end{Sascode}
+\Listing[store=daa1lst,caption=Potentially problematic parameter estimates]{daa1lst}
+
+Finally, in order to prepare the validation request, as well as the release request for the synthetic data results, \textit{both} tables are written out as CSV files:
+\begin{Datastep}
+/*Export validation table and sample size table*/
+proc export data=param1 file="./validationtable1.csv" dbms=csv replace;
+run;
+\end{Datastep}
+\begin{Sascode}[store=paramAcsv,program]
+proc print data=param1;
+run;
+\end{Sascode}
+\Listing[store=paramAcsv,caption=Parameters to be released]{paramAcsv}
+
+
+\begin{Datastep}
+proc export data=discreview1 file="./discreview1.csv" dbms=csv replace;
+run;
+\end{Datastep}
+\begin{Sascode}[store=discreviewA,program]
+proc print data=discreview1;
+run;
+\end{Sascode}
+\Listing[store=discreviewA]{discreviewA}
+
+This regression will meet validation requirements because each regression coefficient is identified from a large number of establishments, and because it is the type of regression
+that would be included as a table in a journal article.  
+
+In fact, if using \LaTeX, the researcher could attach all programs and output from the synthetic data to the validation request, and submit it:
+
+\begin{itemize}
+\item 02\_synlbd\_validation\_SR.sas \attachfile{02_synlbd_validation_SR.sas}
+\item validationtable1.csv \attachfile{validationtable1.csv}
+\item discreview1.csv \attachfile{discreview1.csv}
+\end{itemize}
+
+Note that 
+\begin{itemize}
+\item the result tables as shown here are based on the synthetic data, and both \Code{discreview1.csv} and \Code{validationtable1.csv} would be released to the researcher. 
+\item the validation process would use the programs provided by the researcher to re-generate  Figure~\ref{paramAcsv}, and the  \Code{discreview1.csv} file from the confidential data
+\item the actual results validated against the confidential data (both regression results and counts generated for the disclosure avoidance analysis) will differ from those reported here, and in particular,  \Code{discreview1.csv} would not be released to the researcher.
+\item the validation assumes in addition a reasonable number of results. Running a handful, or even a dozen regressions is OK, running several thousand to subsequently do a specification search on the confidential results is NOT OK, and such validation requests will be denied. The specification search would need to be programmed in a generic way, tested on the synthetic data, and re-run on the confidential data. 
+\end{itemize}
+
+\newpage
+\section{Project 2:  Analysis that fails validation requirements, but meets export requirements}
+\label{sec:2}
+The following example is a project where the analysis meets export requirements, does not meet validation requirements. This project is interested in comparing wage growth by industry in firms with between 45 and 49 employees to wage growth in firms with between 51 and 55  employees. As before,  the researcher prepares the data:
+
+\begin{Datastep}
+/*Prepare data*/
+data analysis;
+set fakelbd;
+by industry lbdnum year;
+
+wage = payroll/emp;
+
+if first.lbdnum then do;
+ lagE = .;         lagp = .;         lagw = .;         
+ end;
+else                 do; 
+ lagE = lag(emp);
+ lagp=lag(payroll); 
+ lagw = lag(wage); 
+
+ empgrowth = emp/lage;
+ wagegrowth= wage/lagw;
+end;
+
+/*Specialized establishment size category*/
+if 45 le emp le 49 then empcat = 1;
+else if 51 le emp le 55 then empcat =2;
+else empcat = .;
+run;
+
+data analysis2;
+	set analysis;
+	by industry lbdnum year;
+	if not first.lbdnum;
+	run;
+\end{Datastep}
+
+Then, the researcher produces his tabulations of interest:
+
+\begin{Sascode}[store=tabB]
+/*Tabulation of interest*/
+proc means data=analysis2 n mean variance;
+class industry empcat year;
+where  year ge 2;
+var empgrowth wagegrowth;
+ods output summary=model2;
+run;
+
+proc print data=model2(obs=&printobs.);
+where industry=5;
+run;
+\end{Sascode}
+The result of the analysis is the following tabulation, for all industries (Figure~\ref{tabBparms} lists the results for a single industry only):
+
+\Listing[store=tabB,objects=print.print,caption={Project 2: Tabulation}]{tabBparms}
+
+The resulting table is not a simple descriptive statistic: It produces data for very fine cells for a large number of industries. Requesting this kind of summary statistics will lead to a denial of the validation request.\footnote{Note that the researcher could potentially create such a table as part of an approved FSRDC project, which includes preparing a memo for the Census Bureau's Disclosure Review Board. It is not the role of this document to speculate whether or not such a request would be denied or not. } Considerations might also be that some of the variables in this table are similar to released Business Dynamics Statistics (BDS), thus preventing release of tabulations based on the underlying LBD.
+
+However, the researcher could still request export of the synthetic data tables. Such a request should still create auxiliary information that will allow the Census Bureau staff the ability to discern whether this is a summary statistic  or raw data. We suggest that cells contain statistics for at least 5 establishments, at any level of the data.
+
+\begin{Datastep}
+/* Export analysis --effective sample size of each cell*/
+proc sql;
+create table exreview2 as
+select  industry, empcat, year,  nObs
+from model2
+;quit;
+\end{Datastep}
+\begin{Sascode}[store=exreview,program]
+proc univariate data=exreview2;
+var nObs;
+run;
+\end{Sascode}
+\Listing[store=exreview,objects=Moments Quantiles,caption=Number of establishments in cells]{exreview}
+
+Note that the export request contains quite a few cells below the desired threshold. These need to be removed prior to export. 
+For the export request for the synthetic data results, \textit{both} tables are written out as CSV files:
+
+\begin{Datastep}
+/*Export table for export, export analysis table*/
+data export2;
+	set model2;
+	where (NObs>5);
+	run;
+proc export data=export2
+ file="./validationtable2.csv" dbms=csv replace;
+run;
+\end{Datastep}
+
+\begin{Sascode}[store=paramBcsv,program]
+proc print data=export2(drop=vname_: obs=&printobs.);
+where industry=5;
+run;
+\end{Sascode}
+\Listing[store=paramBcsv,caption=Exportable data,label=tab:paramB]{paramBcsv}
+
+\begin{Datastep}
+proc export data=exreview2 
+  file="./exreview2.csv" dbms=csv replace;
+run;
+\end{Datastep}
+
+\begin{Sascode}[store=exBcsv,program]
+proc print data=exreview2(obs=&printobs.);
+run;
+\end{Sascode}
+\Listing[store=exBcsv,caption=Export analysis of Project 2,label=tab:discB]{exBcsv}
+
+After inspection of the output,  \Code{discreview2.csv} and \Code{validationtable2.csv} would be released to the researcher. 
+
+\newpage
+\section{Project 2b:  Tabular analysis that fails validation and export requirements:}
+\label{sec:2b}
+This example is a project where the analysis does not meet export or validation requirements.  Suppose the researcher in Project 2 wanted to look at wage and employment growth 
+by establishment size (rounded to next multiple of five) for all establishment sizes, industries and years.
+Using the analysis dataset from Section~\ref{sec:2}, the researcher produces the tabulations of interest:
+
+\begin{Datastep}
+data analysis2b;
+	set analysis2;
+	empcat2=int(emp/5)+1;
+run;
+\end{Datastep}
+
+\begin{Sascode}[store=tabB]
+/*Tabulation of interest*/
+proc means data=analysis2b n mean variance;
+class industry empcat2 year;
+where year ge 2;
+var empgrowth wagegrowth;
+ods output summary=model2b;
+run;
+
+proc print data=model2b(obs=10);
+where industry=5;
+run;
+\end{Sascode}
+Figure~\ref{tabBparms} presents the result of the tabulation for a single industry only.
+
+\Listing[store=tabB,objects=print.print,caption=Project 2b: Tabulation]{tabBparms}
+
+In order to prepare for validation and disclosure avoidance review of the \textit{confidential} analysis, the researcher must determine  the effective sample size of each parameter in terms of establishments and total observations. This should be provided as an ``augmented'' results table that allows the Census Bureau disclosure officer to assess the whole picture. The following code will generate that information:
+
+\begin{Datastep}
+/*Disclosure avoidance review--effective sample size of each cell*/
+proc sql;
+create table discreview2b as
+select industry
+      ,empcat2
+      ,year
+      ,count(distinct lbdnum)as nEstabs
+      ,count(*) as nObs
+from analysis2b
+where n(wagegrowth,empgrowth)=2
+group by industry,empcat2,year
+;
+quit;
+\end{Datastep}
+
+Finally, in order to prepare the validation request, as well as the export request for the synthetic data results, \textit{both} tables are written out as CSV files:
+\begin{Datastep}
+/*Export table for export, disclosure avoidance table*/
+proc export data=model2b(drop=empgrowth_N wagegrowth_N) 
+ file="./validationtable2b.csv" dbms=csv replace;
+run;
+\end{Datastep}
+
+\begin{Sascode}[store=paramBcsv,program]
+proc print data=model2b(drop=empgrowth_N wagegrowth_N vname_: obs=&printobs.);
+where industry=5;
+run;
+\end{Sascode}
+\Listing[store=paramBcsv,label=tab:paramB]{paramBcsv}
+
+\begin{Datastep}
+proc export data=discreview2b 
+  file="./discreview2b.csv" dbms=csv replace;
+run;
+\end{Datastep}
+
+\begin{Sascode}[store=discBcsv,program]
+proc print data=discreview2b(obs=&printobs.);
+run;
+\end{Sascode}
+\Listing[store=discBcsv,label=tab:discB]{discBcsv}
+
+Such a table, however, is not a simple ``descriptive table''. As Figure~\ref{exreview2b} shows, there are too many cells in this request - over 50,000.  
+
+\begin{Sascode}[store=exreview2b,program]
+proc univariate data=discreview2b;
+var nObs;
+run;
+\end{Sascode}
+\Listing[store=exreview2b,objects=Moments ,caption=Number of parameters]{exreview2b}
+
+Such a request would neither be exported nor validated.
+
+
+\newpage
+\section{Project 3:  Regression analysis that fails validation and export requirements:}
+\label{sec:3}
+This example is a project where the analysis does not meet export or validation requirements.  The researcher in Section~\ref{sec:2b} might  conclude that their tabular output can 
+be expressed as the output of a regression, using a series of dummy variables.  However, this regression must meet the same requirements as the tabulation in Section~\ref{sec:2b}, and thus cannot
+be exported or validated.
+
+Using the analysis dataset from Section~\ref{sec:2b}, the researcher produces the regression of interest.  In order to reduce runtime, we use a random 1/100 sample of the data:
+\begin{Datastep}
+data analysis3;
+	set analysis2b;
+	testsamp=(ranuni(&seed2.) < 0.01);
+	run;
+	\end{Datastep}
+	
+\begin{Sascode}
+/*Regression of interest*/
+ods exclude all;
+proc glm data=analysis3(where=(testsamp));
+class industry empcat2 year;
+model empgrowth wagegrowth = empcat2*industry*year/solution;
+ods output parameterestimates=model3b;
+output out=obsds3 r=inc;
+run;
+ods exclude none;
+
+/* we parse the  Parameter variable to get back the characteristics we are after */
+data model3b;
+  set model3b;
+  length industry empcat2 year sortorder 8 ;
+  sortorder=_n_;
+  industry=input(scan(Parameter,2," "),4.);
+  empcat2=input(scan(Parameter,3," "),20.);
+  year=input(scan(Parameter,4," "),4.);
+run;
+\end{Sascode}
+
+\begin{Sascode}[program,store=parmc]
+proc print data=model3b(obs=&printobs. drop=biased stderr tvalue);
+run;
+\end{Sascode}
+
+Figure~\ref{parmCparms} presents the regression coefficients for a single industry. 
+
+\Listing[store=parmc,objects=print.print,caption={Project 3: Regression}]{parmCparms}
+
+In order to prepare for validation and disclosure avoidance review of the \textit{confidential} analysis, the researcher must determine  the effective sample size of each parameter in terms of establishments and total observations. Ideally, this is provided as an ``augmented'' results table that allows the Census Bureau disclosure officer to assess the whole picture. The following code will generate that information:
+\begin{Datastep}
+/*Effective sample size of each cell, meaning # included in each 
+  dummy variable combo, by establishment and observations*/
+proc sql;
+create table discreview3b as
+select industry
+      ,empcat2
+      ,year
+      ,count(distinct lbdnum)as nEstabs
+      , count(*) as nObs
+from analysis3(where=(testsamp))
+where n(wagegrowth,empgrowth)=2
+group by industry,empcat2,year
+;quit;
+
+/* we sort for merge */
+proc sort data=model3b;
+by industry empcat2 year;
+run;
+/* the Discreview dataset contains the COMPLETE set of statistics */
+data discreview3b;
+	merge model3b discreview3b;
+	by industry empcat2 year;
+	run;
+
+\end{Datastep}
+
+This potential request has two problems: it has far too many observations, and each observations is for too few entities. Both the export request and the validation request would be turned down.
+
+\begin{Sascode}[store=exreview3b,program]
+proc univariate data=discreview3b;
+var nObs;
+run;
+\end{Sascode}
+\Listing[store=exreview3b,objects=Moments Quantiles,caption=Number of parameters]{exreview3b}
+
+\begin{Sascode}[program,store=exreview3c]
+proc sort data=discreview3b;
+by sortorder;
+run;
+proc print data=discreview3b(obs=&printobs.);
+var Dependent industry empcat2 year Estimate nObs;
+run;
+\end{Sascode}
+
+
+\Listing[store=exreview3c,objects=print.print,caption={Count of observations associated with parameters}]{exreview3c}
+
+
+\newpage
+
+\appendix
+\input{99_appendix_statrep}
+
+\end{document}
