@@ -1,0 +1,27 @@
+\section{Appendix: How to compile a StatRep document\label{sec:statrep}}
+
+When you use the \Statrep \LaTeX\ package, you use the following
+four-step process to create an executable document that
+enables you to ensure that your research results are reproducible:
+\begin{enumerate}
+\item Create your \LaTeX\ document so that it contains your text,
+data, and SAS code.
+
+\item Compile your document with pdf\LaTeX\ to generate the SAS
+program.
+
+\item Execute the SAS program to capture your output. For each
+code block in your document, SAS creates a SAS Output Delivery System (ODS)
+document that contains the resulting output.
+
+For each output request in your document, SAS replays the
+specified output objects to external files. All your
+requested output is generated and captured when you execute
+the generated SAS program.
+
+\item Recompile your \LaTeX\ document. In this step, the
+requested outputs are embedded in the resulting final PDF document.
+
+You might need to repeat this step so that \LaTeX\ can measure the
+listing outputs to ensure that they are framed appropriately.
+\end{enumerate}
